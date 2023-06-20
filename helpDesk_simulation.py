@@ -3,7 +3,6 @@ import random
 import simpy
 import numpy as np
 
-#Variables globales
 EMPLEADOS_NIVEL_1 = 15
 EMPLEADOS_NIVEL_APPS = 10
 EMPLEADOS_NIVEL_HARDWARE = 9
@@ -24,25 +23,13 @@ DESVIO_NIVEL_OTROS = 15000
 MEDIA_NIVEL_PRODUCT_OWNER = 6000
 DESVIO_NIVEL_PRODUCT_OWNER = 2000
 
-TIEMPO_SIMULACION = 86400
+TIEMPO_SIMULACION = 86400 # 24 hs
 
 ticketsAtendidos = 0
 ticketsResueltos = 0
 
-def ticket(env,nombre, empleado, t_atencion):
-    tArribo = env.now
-    print(f'Ticket {nombre} llegó a las {tArribo:.2f}')
-
-    with empleado.request() as req: 
-        yield req
-        print(f'Ticket {nombre} tomado por el empleado a las {env.now:.2f}')
-        yield env.timeout(t_atencion)
-        print(f'empleado terrmino de atender el ticket {ticket} a las {env.now:.2f}')
-
-
-        
 def proximoArribo(media,normal):
-    # tiempo de arribos según horario, usando distribución normal
+    """Distribuciones para los tiempo de arribos según horario, usando distribución normal"""
     if(env.now >= 0 and env.now < 28800 ):  t_arribos = max(60, np.random.normal(500, 150))  # 0 a 8 hs
     elif(env.now >= 28800 and env.now < 39600 ):  t_arribos = max(60, np.random.normal(270, 100))  # 8 a 11hs
     elif(env.now >= 39600 and env.now < 54000 ): t_arribos = max(60, np.random.normal(245, 90)) # 11 a 15hs
@@ -53,8 +40,8 @@ def proximoArribo(media,normal):
 
 def HelpDesk(env):
     #Resource --> STORAGES
-    emp_level1 = simpy.Resource(env,EMPLEADOS_NIVEL_1) #storage level 1
-    emp_app = simpy.Resource(env,EMPLEADOS_NIVEL_APPS) # creo storage app
+    emp_level1 = simpy.Resource(env,EMPLEADOS_NIVEL_1) 
+    emp_app = simpy.Resource(env,EMPLEADOS_NIVEL_APPS)
     emp_prodOwn = simpy.Resource(env,EMPLEADOS_NIVEL_PRODUCT_OWNER) 
     emp_Harware= simpy.Resource(env,EMPLEADOS_NIVEL_HARDWARE) 
     emp_otros= simpy.Resource(env,EMPLEADOS_NIVEL_OTROS) 
@@ -66,7 +53,7 @@ def HelpDesk(env):
         print(f'nuevo arribo a las {env.now:.2f}')
         ticketsAtendidos +=1
         t = ticket(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros,ticketsAtendidos)
-        env.process(t)    
+        env.process(t) #arribo de procesos (transacciones)    
         
 def ticket(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, i):
 
