@@ -28,7 +28,7 @@ TIEMPO_SIMULACION = 86400 # 24 hs
 ticketsAtendidos = 0
 ticketsResueltos = 0
 
-def proximoArribo(media,normal):
+def proximoArribo(env):
     """Distribuciones para los tiempo de arribos según horario, usando distribución normal"""
     if(env.now >= 0 and env.now < 28800 ):  t_arribos = max(60, np.random.normal(500, 150))  # 0 a 8 hs
     elif(env.now >= 28800 and env.now < 39600 ):  t_arribos = max(60, np.random.normal(270, 100))  # 8 a 11hs
@@ -49,14 +49,14 @@ def HelpDesk(env):
     global ticketsAtendidos
 
     while (True):
-        yield env.timeout(proximoArribo(500, 150))
+        yield env.timeout(proximoArribo(env))
         print(f'nuevo arribo a las {env.now:.2f}')
         ticketsAtendidos +=1
         t = ticket(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros,ticketsAtendidos)
         env.process(t) #arribo de procesos (transacciones)    
         
 def ticket(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, i):
-
+    """Funcion encargada de hacer el paso de los tickets a los diferentes niveles"""
     global ticketsResueltos
 
     print(f'ticket_{i} asignado al equipo de Nivel 1 a las {env.now:.2f}')
