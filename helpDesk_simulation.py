@@ -23,10 +23,13 @@ Hora            Tiempo arribos
 18 - 21         410 +/- 190 segundos
 21 - 24         445 +/- 180 segundos
 
+Horario de atención del Product Owner: 8 a 17 hs
+
 """
 import random
 import simpy
 import numpy as np
+import time
 
 EMPLEADOS_NIVEL_1 = 15
 EMPLEADOS_NIVEL_APPS = 10
@@ -75,7 +78,7 @@ def HelpDesk(env):
 
     while (True):
         yield env.timeout(proximoArribo(env))
-        print(f'Nuevo arribo a las {env.now:.2f}')
+        print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} : Arribo numero {ticketsAtendidos}')
         ticketsAtendidos +=1
         t = ticket(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros,ticketsAtendidos)
         env.process(t) #arribo de procesos (transacciones)    
@@ -84,60 +87,68 @@ def ticket(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, i):
     """Funcion encargada de hacer el paso de los tickets a los diferentes niveles"""
     global ticketsResueltos
 
-    print(f'Ticket_{i} asignado al equipo de Nivel 1 a las {env.now:.2f}')
+    print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} Ticket_{i} : Asignado a equipo de Nivel 1')
+    
     with emp_level1.request() as req: 
         yield req
-        #print(f'ticket_{i} tomado por grupo nivel 1 a las {env.now:.2f}')
         yield env.timeout(max(60, np.random.exponential(MEDIA_NIVEL_UNO)))
-        print(f'Ticket_{i} finalizado por grupo de Nivel 1 a las {env.now:.2f}')
+        print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} Ticket_{i} : finalizo Nivel 1')
 
     siguiente = random.choices(population=["apps","hardware","otros","productOwner","end"], weights=[0.25, 0.35, 0.25, 0.05, 0.1])[0]
 
     if siguiente == "apps":
-        print(f'ticket_{i} asignado al equipo de Apps a las {env.now:.2f}')     
+        #print(f'{env.now:.2f} Ticket_{i} : asignado al equipo Apps')     
         with emp_app.request() as req: 
             yield req
-            #print(f'ticket_{i} tomado por equipo Apps a las {env.now:.2f}')
+            #print(f'{env.now:.2f} ticket_{i}: tomado por equipo Apps')
             yield env.timeout(max(60,np.random.uniform(MEDIA_NIVEL_APPS, DESVIO_NIVEL_APPS)))
-            print(f'Ticket_{i} ha finalizado nivel de Apps a las {env.now:.2f}')
+            print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} Ticket_{i} : finalizo nivel Apps')
 
         siguiente = random.choices(population=["productOwner","end"], weights=[0.40, 0.60])
 
         if siguiente == "productOwner":
-            print(f'Ticket_{i} asignado a equipo Mejora-Product Owner a las {env.now:.0f}')
+            # Product owner solo esta disponible de 8  a 17 hs
+            if env.now < 28800: # antes de las 8 hs no lo atienden
+                yield env.timeout(28800 - env.now)
+            if env.now > 61200: # despues de las 17 hs no lo atienden
+                yield env.timeout(86400 - env.now) # termina el dia y no lo atienden
+
             with emp_prodOwn.request() as req: 
                 yield req
-                #print(f'Ticket_{i} tomado por product owner a las {env.now:.2f}')
+                #print(f'{env.now:.0f}: Ticket_{i}: tomado por Product Owner')
                 yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
-                print(f'Ticket_{i} ha finalizado nivel product owner a las {env.now:.2f}')
+                print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} Ticket_{i} : finalizo nivel Product Owner')
 
     elif siguiente == "hardware":
-        print(f'Ticket_{i} asignado a equipo Hardware a las {env.now:.0f}')
+        #print(f'{env.now:.0f} Ticket_{i}: asignado a equipo Hardware a las {env.now:.0f}')
         with emp_Harware.request() as req: 
             yield req
             #print(f'ticket_{i} tomado por el equipo de Hardware a las {env.now:.2f}')
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_HARDWARE, DESVIO_NIVEL_HARDWARE)))
-            print(f'Ticket_{i} ah finalizado el nivel Hardware a las {env.now:.2f}')
+            print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} Ticket_{i}: finalizo nivel Hardware')
 
     elif siguiente == "otros":
-        print(f'Ticket_{i} asignado al equipo Otros a las {env.now:.0f}')
+        #print(f'{env.now:.0f} Ticket_{i} : asignado al equipo Otros')
         with emp_otros.request() as req: 
             yield req
             #print(f'ticket_{i} tomado por el equipo de Otros a las {env.now:.2f}')
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_OTROS, DESVIO_NIVEL_OTROS)))
-            print(f'El equipo de Otros  terrmino de atender el ticket_{i} a las {env.now:.2f}')
+            print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} Ticket_{i}: finalizo nivel Otros')
 
     elif siguiente == "productOwner":
-        print(f'Ticket_{i} asignado a grupo Mejora-Product Owner a las {env.now:.0f}')
+        # Product owner solo esta disponible de 8  a 17 hs
+        if env.now < 28800: # antes de las 8 hs no lo atienden
+            yield env.timeout(28800 - env.now)
+        if env.now > 61200: # despues de las 17 hs no lo atienden
+            yield env.timeout(86400 - env.now) # termina el dia y no lo atienden
         with emp_prodOwn.request() as req: 
             yield req
             #print(f'ticket_{i} tomado por product owner a las {env.now:.2f}')
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
-            print(f'Ticket_{i} ha finalizado nivel product owner a las {env.now:.2f}')
+            print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))}Ticket_{i}: finalizo nivel Product Owner')
    
-    print("**********************************************************************")
-    print(f'TICKET_{i} RESUELTO A LAS {env.now:.0f}')
-    print("**********************************************************************")
+    print(f'***************{time.strftime("%H:%M:%S", time.gmtime(env.now))} TICKET_{i} : RESUELTO *****************************')
+
     ticketsResueltos+=1
 
    
