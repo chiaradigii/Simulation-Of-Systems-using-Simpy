@@ -25,6 +25,8 @@ Hora            Tiempo arribos
 
 Horario de atención del Product Owner: 8 a 17 hs
 
+#SUPUESTOS : Este codigo sirve para simular la jornada laboral de un solo dia, hay que modificar los valores si deseamos simular mas
+
 """
 import random
 import simpy
@@ -151,11 +153,11 @@ def ticket(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, i):
 
     ticketsResueltos+=1
 
-   
 
-env = simpy.Environment()#creo empleado, este es un recurso de capacidad 1 (ACA TANTO FACILITY Y STORAGE ES RECURSO)
+env = simpy.Environment()
 env.process(HelpDesk(env))
 env.run(until=TIEMPO_SIMULACION)
+
 print(f"Tickets resueltos: {ticketsResueltos} ")
 print(f"Tickets empezados pero sin resolver: {ticketsAtendidos-ticketsResueltos} ")
 
