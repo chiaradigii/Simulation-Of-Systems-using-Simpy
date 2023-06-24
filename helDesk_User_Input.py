@@ -34,11 +34,6 @@ import numpy as np
 import time
 import statistics
 
-EMPLEADOS_NIVEL_1 = 15
-EMPLEADOS_NIVEL_APPS = 10
-EMPLEADOS_NIVEL_HARDWARE = 9
-EMPLEADOS_NIVEL_OTROS = 8
-EMPLEADOS_NIVEL_PRODUCT_OWNER = 4
 
 MEDIA_NIVEL_UNO = 7000
 
@@ -63,21 +58,16 @@ ticketsArribados =list()
 
 def distribucionArribos(env):
     """Distribuciones para los tiempo de arribos según horario, usando distribución normal"""
-    if(env.now >= 0 and env.now < 28800 ):  t_arribos = max(60, np.random.exponential(500, 150))  # 0 a 8 hs
-    elif(env.now >= 28800 and env.now < 39600 ):  t_arribos = max(60, np.random.exponential(270, 100))  # 8 a 11hs
-    elif(env.now >= 39600 and env.now < 54000 ): t_arribos = max(60, np.random.exponential(245, 90)) # 11 a 15hs
-    elif(env.now >= 54000 and env.now < 64800 ): t_arribos = max(60, np.random.exponential(320, 100))# 15 a 18 hs
-    elif(env.now >= 64800 and env.now < 75600 ): t_arribos = max(60, np.random.exponential(410, 190)) #18 a 21 hs
-    elif(env.now >= 75600): t_arribos = max(60, np.random.exponential(445, 180)) #21 a 24 hs
+    if(env.now >= 0 and env.now < 28800 ):  t_arribos = max(60, np.random.normal(500, 150))  # 0 a 8 hs
+    elif(env.now >= 28800 and env.now < 39600 ):  t_arribos = max(60, np.random.normal(270, 100))  # 8 a 11hs
+    elif(env.now >= 39600 and env.now < 54000 ): t_arribos = max(60, np.random.normal(245, 90)) # 11 a 15hs
+    elif(env.now >= 54000 and env.now < 64800 ): t_arribos = max(60, np.random.normal(320, 100))# 15 a 18 hs
+    elif(env.now >= 64800 and env.now < 75600 ): t_arribos = max(60, np.random.normal(410, 190)) #18 a 21 hs
+    elif(env.now >= 75600): t_arribos = max(60, np.random.normal(445, 180)) #21 a 24 hs
     return t_arribos
 
-def Arrivals(env):
+def Arrivals(env, emp_level1, emp_app,emp_Harware, emp_otros, emp_prodOwn):
     #Resource --> STORAGES
-    emp_level1 = simpy.Resource(env,EMPLEADOS_NIVEL_1) 
-    emp_app = simpy.Resource(env,EMPLEADOS_NIVEL_APPS)
-    emp_prodOwn = simpy.Resource(env,EMPLEADOS_NIVEL_PRODUCT_OWNER) 
-    emp_Harware= simpy.Resource(env,EMPLEADOS_NIVEL_HARDWARE) 
-    emp_otros= simpy.Resource(env,EMPLEADOS_NIVEL_OTROS) 
     
     global ticketsArribados
 
@@ -86,7 +76,7 @@ def Arrivals(env):
         print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} : Arribo numero {len(ticketsArribados)+1}')
         ticket = Ticket(f"Ticket_{len(ticketsArribados)+1}",env.now)
         ticketsArribados.append(ticket)
-        t = HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros,ticket)
+        t = HelpDesk(env,emp_level1, emp_app,emp_Harware, emp_otros,emp_prodOwn,ticket)
         env.process(t) #arribo de procesos (transacciones)    
         
 class Ticket:
@@ -106,7 +96,7 @@ class Ticket:
         self.wait_time[level] = waitingTime
 
 
-def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket):
+def HelpDesk(env,emp_level1, emp_app,emp_Harware, emp_otros,emp_prodOwn, ticket):
     """Funcion encargada de hacer el paso de los tickets a los diferentes niveles"""
     global ticketsResueltos
  
@@ -173,6 +163,25 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
     wait_times.append(sum(ticket.wait_time.values()))
 
 
+def get_user_input():
+    num_emp_levelOne = input("Input # de empleados nivel Uno: ")
+    num_emp_levelApps = input("Input # de empleados nivel Apps: ")
+    num_emp_levelHardw = input("Input # de empleados nivel Hardware: ")
+    num_emp_levelOtros = input("Input # de empleados nivel Otros: ")
+    num_emp_levelProductOwn = input("Input # de empleados nivel Product Owner: ")
+
+    params = [num_emp_levelOne, num_emp_levelApps, num_emp_levelHardw,num_emp_levelOtros,num_emp_levelProductOwn]
+    if all(str(i).isdigit() for i in params):  # Check input is valid
+        params = [int(x) for x in params]
+    else:
+        print(
+            "Could not parse input. The simulation will use default values:",
+            "\n15 nivel Uno, 10 nivel Apps, 9 nivel Hardware, 8 nivel Otros, 4 Product owner ",
+        )
+        params = [15, 10, 9,8,4]
+    return params
+
+
 def calculate_wait_time(wait_times):
     average_wait = statistics.mean(wait_times)
     minutes, frac_minutes = divmod(average_wait, 1)
@@ -182,10 +191,16 @@ def calculate_wait_time(wait_times):
 def main():
     # Setup
     random.seed(42) # fijo la semilla para que me de los mismos valores
-    
+    emp_level1, emp_app, emp_Harware, emp_otros, emp_prodOwn = get_user_input()
     # Corremos la simulacion
     env = simpy.Environment()
-    env.process(Arrivals(env))
+    storage_level1 = simpy.Resource(env,emp_level1) 
+    storage_app = simpy.Resource(env,emp_app)
+    storage_Harware= simpy.Resource(env,emp_Harware) 
+    storage_otros= simpy.Resource(env,emp_otros) 
+    storage_prodOwn = simpy.Resource(env,emp_prodOwn) 
+
+    env.process(Arrivals(env, storage_level1, storage_app, storage_Harware,storage_otros ,storage_prodOwn))
     env.run(until=TIEMPO_SIMULACION)
 
     # resultados
