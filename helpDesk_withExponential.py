@@ -40,7 +40,7 @@ EMPLEADOS_NIVEL_HARDWARE = 9
 EMPLEADOS_NIVEL_OTROS = 8
 EMPLEADOS_NIVEL_PRODUCT_OWNER = 4
 
-MEDIA_NIVEL_UNO = 7000
+LAMDA_NIVEL_UNO = 1/60
 
 MEDIA_NIVEL_APPS = 10000
 DESVIO_NIVEL_APPS = 25000
@@ -63,13 +63,7 @@ ticketsArribados =list()
 
 def distribucionArribos(env):
     """Distribuciones para los tiempo de arribos según horario, usando distribución normal"""
-    if(env.now >= 0 and env.now < 28800 ):  t_arribos = max(60, np.random.exponential(500, 150))  # 0 a 8 hs
-    elif(env.now >= 28800 and env.now < 39600 ):  t_arribos = max(60, np.random.exponential(270, 100))  # 8 a 11hs
-    elif(env.now >= 39600 and env.now < 54000 ): t_arribos = max(60, np.random.exponential(245, 90)) # 11 a 15hs
-    elif(env.now >= 54000 and env.now < 64800 ): t_arribos = max(60, np.random.exponential(320, 100))# 15 a 18 hs
-    elif(env.now >= 64800 and env.now < 75600 ): t_arribos = max(60, np.random.exponential(410, 190)) #18 a 21 hs
-    elif(env.now >= 75600): t_arribos = max(60, np.random.exponential(445, 180)) #21 a 24 hs
-    return t_arribos
+    return max(60, np.random.exponential(1/30))
 
 def Arrivals(env):
     #Resource --> STORAGES
@@ -114,7 +108,7 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
     
     with emp_level1.request() as req: 
         yield req
-        yield env.timeout(max(60, np.random.exponential(MEDIA_NIVEL_UNO)))
+        yield env.timeout(max(60, np.random.exponential(LAMDA_NIVEL_UNO)))
         print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo Nivel 1')
         ticket.set_wait_time('Level_One', env.now - ticket.arrival_time)
 

@@ -114,7 +114,7 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
     
     with emp_level1.request() as req: 
         yield req
-        yield env.timeout(max(60, np.random.exponential(MEDIA_NIVEL_UNO)))
+        yield env.timeout(max(60, np.random.exponential(MEDIA_NIVEL_UNO)   ))
         print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo Nivel 1')
         ticket.set_wait_time('Level_One', env.now - ticket.arrival_time)
 
