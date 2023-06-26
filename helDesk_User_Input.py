@@ -92,6 +92,9 @@ class Ticket:
             'Level_ProductOwner': 0,
         }
     
+    def sum_waiting_times(self, ):
+        return sum(self.wait_time[x] for x in self.wait_time)
+    
     def set_wait_time(self, level, waitingTime):
         self.wait_time[level] = waitingTime
 
@@ -115,7 +118,7 @@ def HelpDesk(env,emp_level1, emp_app,emp_Harware, emp_otros,emp_prodOwn, ticket)
             yield req
             yield env.timeout(max(60,np.random.uniform(MEDIA_NIVEL_APPS, DESVIO_NIVEL_APPS)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo nivel Apps')
-            ticket.set_wait_time('Level_Apps', env.now - ticket.arrival_time)
+            ticket.set_wait_time('Level_Apps', env.now - ticket.sum_waiting_times())
 
         siguiente = random.choices(population=["productOwner","end"], weights=[0.40, 0.60])
 
@@ -129,21 +132,21 @@ def HelpDesk(env,emp_level1, emp_app,emp_Harware, emp_otros,emp_prodOwn, ticket)
                 yield req
                 yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
                 print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo nivel Product Owner')
-                ticket.set_wait_time('Level_ProductOwner', env.now - ticket.arrival_time)
+                ticket.set_wait_time('Level_ProductOwner', env.now - ticket.sum_waiting_times())
 
     elif siguiente == "hardware":
         with emp_Harware.request() as req: 
             yield req
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_HARDWARE, DESVIO_NIVEL_HARDWARE)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion}: finalizo nivel Hardware')
-            ticket.set_wait_time('Level_Hardware', env.now - ticket.arrival_time)
+            ticket.set_wait_time('Level_Hardware', env.now - ticket.sum_waiting_times())
 
     elif siguiente == "otros":
         with emp_otros.request() as req: 
             yield req
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_OTROS, DESVIO_NIVEL_OTROS)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion}: finalizo nivel Otros')
-            ticket.set_wait_time('Level_Others', env.now - ticket.arrival_time)
+            ticket.set_wait_time('Level_Others', env.now - ticket.sum_waiting_times())
 
     elif siguiente == "productOwner":
         if env.now < 28800: # antes de las 8 hs no lo atienden
@@ -154,7 +157,7 @@ def HelpDesk(env,emp_level1, emp_app,emp_Harware, emp_otros,emp_prodOwn, ticket)
             yield req
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))}{ticket.descripcion}: finalizo nivel Product Owner')
-            ticket.set_wait_time('Level_ProductOwner', env.now - ticket.arrival_time)
+            ticket.set_wait_time('Level_ProductOwner', env.now - ticket.sum_waiting_times())
 
 
     print(f'***************{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : RESUELTO *****************************')

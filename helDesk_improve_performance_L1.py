@@ -34,13 +34,13 @@ import numpy as np
 import time
 import statistics
 
-EMPLEADOS_NIVEL_1 = 15
-EMPLEADOS_NIVEL_APPS = 10
-EMPLEADOS_NIVEL_HARDWARE = 9
-EMPLEADOS_NIVEL_OTROS = 8
-EMPLEADOS_NIVEL_PRODUCT_OWNER = 4
+EMPLEADOS_NIVEL_1 = 25
+EMPLEADOS_NIVEL_APPS = 20
+EMPLEADOS_NIVEL_HARDWARE = 19
+EMPLEADOS_NIVEL_OTROS = 18
+EMPLEADOS_NIVEL_PRODUCT_OWNER = 14
 
-MEDIA_NIVEL_UNO = 7000
+LAMDA_NIVEL_UNO = 1/60
 
 MEDIA_NIVEL_APPS = 10000
 DESVIO_NIVEL_APPS = 25000
@@ -116,7 +116,7 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
     
     with emp_level1.request() as req: 
         yield req
-        yield env.timeout(max(60, np.random.exponential(MEDIA_NIVEL_UNO)   ))
+        yield env.timeout(max(60, np.random.exponential(LAMDA_NIVEL_UNO)   ))
         print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo Nivel 1')
         ticket.set_wait_time('Level_One', env.now - ticket.arrival_time)
 
@@ -167,7 +167,7 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))}{ticket.descripcion}: finalizo nivel Product Owner')
             ticket.set_wait_time('Level_ProductOwner', env.now - ticket.sum_waiting_times())
-            
+
 
     print(f'***************{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : RESUELTO *****************************')
 
@@ -203,7 +203,7 @@ def main():
     print(f"Tickets resueltos: {len(ticketsResueltos)} ")
     print(f"Tickets arribados pero sin resolver: {len(ticketsArribados)-len(ticketsResueltos)} ")
     #print(f"\nTIEMPOS DE ESPERA TOTALES:{tot}" )
-    print("\nRETRASO MEDIO DE LOS TICKETS RESUELTOS")
+    print("\nRETRASO MEDIO")
     mins, secs = calculate_wait_time(wait_times)
     print(
 

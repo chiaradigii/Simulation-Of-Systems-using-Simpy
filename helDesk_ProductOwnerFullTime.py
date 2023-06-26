@@ -23,8 +23,6 @@ Hora            Tiempo arribos
 18 - 21         410 +/- 190 segundos
 21 - 24         445 +/- 180 segundos
 
-Horario de atención del Product Owner: 8 a 17 hs
-
 #SUPUESTOS : Este codigo sirve para simular la jornada laboral de un solo dia, hay que modificar los valores si deseamos simular mas
 
 """
@@ -34,11 +32,6 @@ import numpy as np
 import time
 import statistics
 
-EMPLEADOS_NIVEL_1 = 15
-EMPLEADOS_NIVEL_APPS = 10
-EMPLEADOS_NIVEL_HARDWARE = 9
-EMPLEADOS_NIVEL_OTROS = 8
-EMPLEADOS_NIVEL_PRODUCT_OWNER = 4
 
 MEDIA_NIVEL_UNO = 7000
 
@@ -71,21 +64,17 @@ def distribucionArribos(env):
     elif(env.now >= 75600): t_arribos = max(60, np.random.normal(445, 180)) #21 a 24 hs
     return t_arribos
 
-def Arrivals(env):
+def Arrivals(env, emp_level1, emp_app,emp_Harware, emp_otros, emp_prodOwn):
     #Resource --> STORAGES
-    emp_level1 = simpy.Resource(env,EMPLEADOS_NIVEL_1) 
-    emp_app = simpy.Resource(env,EMPLEADOS_NIVEL_APPS)
-    emp_prodOwn = simpy.Resource(env,EMPLEADOS_NIVEL_PRODUCT_OWNER) 
-    emp_Harware= simpy.Resource(env,EMPLEADOS_NIVEL_HARDWARE) 
-    emp_otros= simpy.Resource(env,EMPLEADOS_NIVEL_OTROS) 
     
+    global ticketsArribados
 
     while (True):
         yield env.timeout(distribucionArribos(env))
         print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} : Arribo numero {len(ticketsArribados)+1}')
         ticket = Ticket(f"Ticket_{len(ticketsArribados)+1}",env.now)
         ticketsArribados.append(ticket)
-        t = HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros,ticket)
+        t = HelpDesk(env,emp_level1, emp_app,emp_Harware, emp_otros,emp_prodOwn,ticket)
         env.process(t) #arribo de procesos (transacciones)    
         
 class Ticket:
@@ -101,14 +90,11 @@ class Ticket:
             'Level_ProductOwner': 0,
         }
     
-    def sum_waiting_times(self, ):
-        return sum(self.wait_time[x] for x in self.wait_time)
-
     def set_wait_time(self, level, waitingTime):
         self.wait_time[level] = waitingTime
 
 
-def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket):
+def HelpDesk(env,emp_level1, emp_app,emp_Harware, emp_otros,emp_prodOwn, ticket):
     """Funcion encargada de hacer el paso de los tickets a los diferentes niveles"""
     global ticketsResueltos
  
@@ -116,7 +102,7 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
     
     with emp_level1.request() as req: 
         yield req
-        yield env.timeout(max(60, np.random.exponential(MEDIA_NIVEL_UNO)   ))
+        yield env.timeout(max(60, np.random.exponential(MEDIA_NIVEL_UNO)))
         print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo Nivel 1')
         ticket.set_wait_time('Level_One', env.now - ticket.arrival_time)
 
@@ -127,47 +113,37 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
             yield req
             yield env.timeout(max(60,np.random.uniform(MEDIA_NIVEL_APPS, DESVIO_NIVEL_APPS)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo nivel Apps')
-            ticket.set_wait_time('Level_Apps', env.now - ticket.sum_waiting_times())
+            ticket.set_wait_time('Level_Apps', env.now - ticket.arrival_time)
 
         siguiente = random.choices(population=["productOwner","end"], weights=[0.40, 0.60])
 
-        if siguiente == "productOwner":
-            if env.now < 28800: # antes de las 8 hs no lo atienden
-                yield env.timeout(28800 - env.now)
-            if env.now > 61200: # despues de las 17 hs no lo atienden
-                yield env.timeout(90000 - env.now) # termina el dia y no lo atienden
-
-            with emp_prodOwn.request() as req: 
-                yield req
-                yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
-                print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo nivel Product Owner')
-                ticket.set_wait_time('Level_ProductOwner', env.now - ticket.sum_waiting_times())
+        with emp_prodOwn.request() as req: 
+            yield req
+            yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
+            print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : finalizo nivel Product Owner')
+            ticket.set_wait_time('Level_ProductOwner', env.now - ticket.arrival_time)
 
     elif siguiente == "hardware":
         with emp_Harware.request() as req: 
             yield req
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_HARDWARE, DESVIO_NIVEL_HARDWARE)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion}: finalizo nivel Hardware')
-            ticket.set_wait_time('Level_Hardware', env.now - ticket.sum_waiting_times())
+            ticket.set_wait_time('Level_Hardware', env.now - ticket.arrival_time)
 
     elif siguiente == "otros":
         with emp_otros.request() as req: 
             yield req
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_OTROS, DESVIO_NIVEL_OTROS)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion}: finalizo nivel Otros')
-            ticket.set_wait_time('Level_Others', env.now - ticket.sum_waiting_times())
+            ticket.set_wait_time('Level_Others', env.now - ticket.arrival_time)
 
-    elif siguiente == "productOwner":
-        if env.now < 28800: # antes de las 8 hs no lo atienden
-            yield env.timeout(28800 - env.now)
-        if env.now > 61200: # despues de las 17 hs no lo atienden
-            yield env.timeout(86400 - env.now) # termina el dia y no lo atienden
-        with emp_prodOwn.request() as req: 
-            yield req
-            yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
-            print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))}{ticket.descripcion}: finalizo nivel Product Owner')
-            ticket.set_wait_time('Level_ProductOwner', env.now - ticket.sum_waiting_times())
-            
+
+    with emp_prodOwn.request() as req: 
+        yield req
+        yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
+        print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))}{ticket.descripcion}: finalizo nivel Product Owner')
+        ticket.set_wait_time('Level_ProductOwner', env.now - ticket.arrival_time)
+
 
     print(f'***************{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : RESUELTO *****************************')
 
@@ -175,9 +151,26 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
     wait_times.append(sum(ticket.wait_time.values()))
 
 
+def get_user_input():
+    num_emp_levelOne = input("Input # de empleados nivel Uno: ")
+    num_emp_levelApps = input("Input # de empleados nivel Apps: ")
+    num_emp_levelHardw = input("Input # de empleados nivel Hardware: ")
+    num_emp_levelOtros = input("Input # de empleados nivel Otros: ")
+    num_emp_levelProductOwn = input("Input # de empleados nivel Product Owner: ")
+
+    params = [num_emp_levelOne, num_emp_levelApps, num_emp_levelHardw,num_emp_levelOtros,num_emp_levelProductOwn]
+    if all(str(i).isdigit() for i in params):  # Check input is valid
+        params = [int(x) for x in params]
+    else:
+        print(
+            "Could not parse input. The simulation will use default values:",
+            "\n15 nivel Uno, 10 nivel Apps, 9 nivel Hardware, 8 nivel Otros, 4 Product owner ",
+        )
+        params = [15, 10, 9,8,4]
+    return params
+
+
 def calculate_wait_time(wait_times):
-    """ Retardo medio
-        Calcula el tiempo promedio que un ticket promedio espera"""
     average_wait = statistics.mean(wait_times)
     minutes, frac_minutes = divmod(average_wait, 1)
     seconds = frac_minutes * 60
@@ -185,11 +178,17 @@ def calculate_wait_time(wait_times):
 
 def main():
     # Setup
-    np.random.seed(42) # fijo la semilla para que me de los mismos valores
-    
+    random.seed(42) # fijo la semilla para que me de los mismos valores
+    emp_level1, emp_app, emp_Harware, emp_otros, emp_prodOwn = get_user_input()
     # Corremos la simulacion
     env = simpy.Environment()
-    env.process(Arrivals(env))
+    storage_level1 = simpy.Resource(env,emp_level1) 
+    storage_app = simpy.Resource(env,emp_app)
+    storage_Harware= simpy.Resource(env,emp_Harware) 
+    storage_otros= simpy.Resource(env,emp_otros) 
+    storage_prodOwn = simpy.Resource(env,emp_prodOwn) 
+
+    env.process(Arrivals(env, storage_level1, storage_app, storage_Harware,storage_otros ,storage_prodOwn))
     env.run(until=TIEMPO_SIMULACION)
 
     # resultados
@@ -201,13 +200,12 @@ def main():
     tot = waiting_times_level_one+waiting_times_level_apps+waiting_times_level_hardw+waiting_times_level_other+waiting_times_level_productOwner
     print("-----------------------------------------------------------------------------------------------")
     print(f"Tickets resueltos: {len(ticketsResueltos)} ")
-    print(f"Tickets arribados pero sin resolver: {len(ticketsArribados)-len(ticketsResueltos)} ")
-    #print(f"\nTIEMPOS DE ESPERA TOTALES:{tot}" )
-    print("\nRETRASO MEDIO DE LOS TICKETS RESUELTOS")
+    print(f"Tickets empezados pero sin resolver: {len(ticketsArribados)-len(ticketsResueltos)} ")
+    print(f"\nTIEMPOS DE ESPERA TOTALES:{tot}" )
     mins, secs = calculate_wait_time(wait_times)
     print(
 
-            f"El tiempo promedio es {mins} minutos y {secs} segundos.",
+            f"\nEl tiempo promedio es {mins} minutos y {secs} segundos.",
         )
         
     print("\nTIEMPOS DE ESPERA POR NIVEL:")

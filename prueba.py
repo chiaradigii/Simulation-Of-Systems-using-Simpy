@@ -34,11 +34,11 @@ import numpy as np
 import time
 import statistics
 
-EMPLEADOS_NIVEL_1 = 15
-EMPLEADOS_NIVEL_APPS = 10
-EMPLEADOS_NIVEL_HARDWARE = 9
-EMPLEADOS_NIVEL_OTROS = 8
-EMPLEADOS_NIVEL_PRODUCT_OWNER = 4
+EMPLEADOS_NIVEL_1 = 25
+EMPLEADOS_NIVEL_APPS = 20
+EMPLEADOS_NIVEL_HARDWARE = 19
+EMPLEADOS_NIVEL_OTROS = 18
+EMPLEADOS_NIVEL_PRODUCT_OWNER = 14
 
 MEDIA_NIVEL_UNO = 7000
 
@@ -198,13 +198,15 @@ def main():
     waiting_times_level_hardw = sum(i.wait_time["Level_Hardware"] for i in ticketsArribados )
     waiting_times_level_other = sum(i.wait_time["Level_Others"] for i in ticketsArribados )
     waiting_times_level_productOwner = sum(i.wait_time["Level_ProductOwner"] for i in ticketsArribados )
+
+    list_wait_times = [waiting_times_level_one, waiting_times_level_apps, waiting_times_level_hardw,waiting_times_level_other, waiting_times_level_productOwner ]
     tot = waiting_times_level_one+waiting_times_level_apps+waiting_times_level_hardw+waiting_times_level_other+waiting_times_level_productOwner
     print("-----------------------------------------------------------------------------------------------")
     print(f"Tickets resueltos: {len(ticketsResueltos)} ")
     print(f"Tickets arribados pero sin resolver: {len(ticketsArribados)-len(ticketsResueltos)} ")
     #print(f"\nTIEMPOS DE ESPERA TOTALES:{tot}" )
-    print("\nRETRASO MEDIO DE LOS TICKETS RESUELTOS")
-    mins, secs = calculate_wait_time(wait_times)
+    print("\nRETRASO MEDIO")
+    mins, secs = calculate_wait_time(list_wait_times)
     print(
 
             f"El tiempo promedio es {mins} minutos y {secs} segundos.",

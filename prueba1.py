@@ -60,6 +60,11 @@ wait_times = list()
 ticketsResueltos = list()
 ticketsArribados =list()
 
+data_emp_level1 = list()
+data_emp_app = list()
+data_emp_prodOwn = list()
+data_emp_Harware= list()
+data_emp_otros= list()
 
 def distribucionArribos(env):
     """Distribuciones para los tiempo de arribos según horario, usando distribución normal"""
@@ -78,10 +83,16 @@ def Arrivals(env):
     emp_prodOwn = simpy.Resource(env,EMPLEADOS_NIVEL_PRODUCT_OWNER) 
     emp_Harware= simpy.Resource(env,EMPLEADOS_NIVEL_HARDWARE) 
     emp_otros= simpy.Resource(env,EMPLEADOS_NIVEL_OTROS) 
-    
 
     while (True):
         yield env.timeout(distribucionArribos(env))
+        # almacena cantidad de empleados esperando por cola en lista global para despues sacar metricas
+        data_emp_level1.append(len(emp_level1.queue)) 
+        data_emp_app.append(len(emp_app.queue))
+        data_emp_Harware.append(len(emp_Harware.queue)) 
+        data_emp_otros.append(len(emp_otros.queue))
+        data_emp_prodOwn.append(len(emp_prodOwn.queue))
+
         print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))} : Arribo numero {len(ticketsArribados)+1}')
         ticket = Ticket(f"Ticket_{len(ticketsArribados)+1}",env.now)
         ticketsArribados.append(ticket)
@@ -167,7 +178,7 @@ def HelpDesk(env,emp_level1, emp_app,emp_prodOwn,emp_Harware, emp_otros, ticket)
             yield env.timeout(max(60, np.random.uniform(MEDIA_NIVEL_PRODUCT_OWNER, DESVIO_NIVEL_PRODUCT_OWNER)))
             print(f'{time.strftime("%H:%M:%S", time.gmtime(env.now))}{ticket.descripcion}: finalizo nivel Product Owner')
             ticket.set_wait_time('Level_ProductOwner', env.now - ticket.sum_waiting_times())
-            
+
 
     print(f'***************{time.strftime("%H:%M:%S", time.gmtime(env.now))} {ticket.descripcion} : RESUELTO *****************************')
 
@@ -202,8 +213,8 @@ def main():
     print("-----------------------------------------------------------------------------------------------")
     print(f"Tickets resueltos: {len(ticketsResueltos)} ")
     print(f"Tickets arribados pero sin resolver: {len(ticketsArribados)-len(ticketsResueltos)} ")
-    #print(f"\nTIEMPOS DE ESPERA TOTALES:{tot}" )
-    print("\nRETRASO MEDIO DE LOS TICKETS RESUELTOS")
+    print(f"\nTIEMPOS DE ESPERA TOTALES:{tot}" )
+    print("\nRETRASO MEDIO")
     mins, secs = calculate_wait_time(wait_times)
     print(
 
@@ -216,6 +227,13 @@ def main():
     print(f"Nivel Hardware: {waiting_times_level_hardw}s --> {(waiting_times_level_hardw/tot):.2%}")
     print(f"Nivel Otros: {waiting_times_level_other}s --> {(waiting_times_level_other/tot):.2%}")
     print(f"Nivel Product owner: {waiting_times_level_productOwner}s --> {(waiting_times_level_productOwner/tot):.2%}")
+
+    print("\nTICKETS EN COLA PROMEDIO POR NIVEL:")
+    print(f"Nivel 1: {sum(data_emp_level1) / len(data_emp_level1)}")
+    print(f"Nivel Apps: {sum(data_emp_app) / len(data_emp_app)}")
+    print(f"Nivel Hardware:{sum(data_emp_Harware) / len(data_emp_Harware)}")
+    print(f"Nivel Otros: {sum(data_emp_otros) / len(data_emp_otros)}")
+    print(f"Nivel Product owner: {sum(data_emp_prodOwn) / len(data_emp_prodOwn)}")
 
 if __name__ == '__main__':
     main()
