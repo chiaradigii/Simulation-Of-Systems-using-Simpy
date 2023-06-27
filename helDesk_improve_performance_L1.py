@@ -33,12 +33,13 @@ import simpy
 import numpy as np
 import time
 import statistics
+import matplotlib.pyplot as plt
 
-EMPLEADOS_NIVEL_1 = 25
-EMPLEADOS_NIVEL_APPS = 20
-EMPLEADOS_NIVEL_HARDWARE = 19
-EMPLEADOS_NIVEL_OTROS = 18
-EMPLEADOS_NIVEL_PRODUCT_OWNER = 14
+EMPLEADOS_NIVEL_1 = 15
+EMPLEADOS_NIVEL_APPS = 10
+EMPLEADOS_NIVEL_HARDWARE = 9
+EMPLEADOS_NIVEL_OTROS = 8
+EMPLEADOS_NIVEL_PRODUCT_OWNER = 4
 
 LAMDA_NIVEL_UNO = 1/60
 
@@ -183,16 +184,7 @@ def calculate_wait_time(wait_times):
     seconds = frac_minutes * 60
     return round(minutes), round(seconds)
 
-def main():
-    # Setup
-    np.random.seed(42) # fijo la semilla para que me de los mismos valores
-    
-    # Corremos la simulacion
-    env = simpy.Environment()
-    env.process(Arrivals(env))
-    env.run(until=TIEMPO_SIMULACION)
-
-    # resultados
+def show_results():
     waiting_times_level_one = sum(i.wait_time["Level_One"] for i in ticketsArribados )
     waiting_times_level_apps = sum(i.wait_time["Level_Apps"] for i in ticketsArribados )
     waiting_times_level_hardw = sum(i.wait_time["Level_Hardware"] for i in ticketsArribados )
@@ -216,6 +208,34 @@ def main():
     print(f"Nivel Hardware: {waiting_times_level_hardw}s --> {(waiting_times_level_hardw/tot):.2%}")
     print(f"Nivel Otros: {waiting_times_level_other}s --> {(waiting_times_level_other/tot):.2%}")
     print(f"Nivel Product owner: {waiting_times_level_productOwner}s --> {(waiting_times_level_productOwner/tot):.2%}")
+
+        ##Plotting results
+    y = np.array([waiting_times_level_one, waiting_times_level_apps, waiting_times_level_hardw, waiting_times_level_other,waiting_times_level_productOwner])
+    labels = ["Level 1", "Level Apps", "Level Hardware", "Level Otros","Level Product Owner"]
+    fig, ax = plt.subplots()
+    ax.pie(y, labels = labels, autopct='%1.1f%%')
+    plt.title("Porcentajes de los tiempos de espera por cola", bbox={'facecolor':'0.8', 'pad':5})
+    plt.show() 
+
+    y = np.array([ len(ticketsResueltos), len(ticketsArribados) - len(ticketsResueltos)])
+    labels = ["Tickets Resueltos", "Tickets Arribados sin resolver"]
+    fig, ax = plt.subplots()
+    ax.pie(y, labels = labels, autopct='%1.1f%%')
+    plt.title("Proporción de tickets resueltos y los qye no pudieron ser finalizados en 24hs", bbox={'facecolor':'0.8', 'pad':5})
+    plt.show() 
+
+def main():
+    # Setup
+    np.random.seed(42) # fijo la semilla para que me de los mismos valores
+    
+    # Corremos la simulacion
+    env = simpy.Environment()
+    env.process(Arrivals(env))
+    env.run(until=TIEMPO_SIMULACION)
+
+    # resultados
+    show_results()
+
 
 if __name__ == '__main__':
     main()

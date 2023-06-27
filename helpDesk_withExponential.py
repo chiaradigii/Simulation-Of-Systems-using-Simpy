@@ -33,6 +33,7 @@ import simpy
 import numpy as np
 import time
 import statistics
+import matplotlib.pyplot as plt
 
 EMPLEADOS_NIVEL_1 = 15
 EMPLEADOS_NIVEL_APPS = 10
@@ -207,6 +208,22 @@ def main():
     print(f"Nivel Hardware: {waiting_times_level_hardw}s --> {(waiting_times_level_hardw/tot):.2%}")
     print(f"Nivel Otros: {waiting_times_level_other}s --> {(waiting_times_level_other/tot):.2%}")
     print(f"Nivel Product owner: {waiting_times_level_productOwner}s --> {(waiting_times_level_productOwner/tot):.2%}")
+
+    
+    ##Plotting results
+    y = np.array([waiting_times_level_one, waiting_times_level_apps, waiting_times_level_hardw, waiting_times_level_other,waiting_times_level_productOwner])
+    labels = ["Level 1", "Level Apps", "Level Hardware", "Level Otros","Level Product Owner"]
+    fig, ax = plt.subplots()
+    ax.pie(y, labels = labels, autopct='%1.1f%%')
+    plt.title("Porcentajes de los tiempos de espera por cola", bbox={'facecolor':'0.8', 'pad':5})
+    plt.show() 
+
+    y = np.array([ len(ticketsResueltos), len(ticketsArribados) - len(ticketsResueltos)])
+    labels = ["Tickets Resueltos", "Tickets Arribados sin resolver"]
+    fig, ax = plt.subplots()
+    ax.pie(y, labels = labels, autopct='%1.1f%%')
+    plt.title("Proporción de tickets resueltos y los qye no pudieron ser finalizados en 24hs", bbox={'facecolor':'0.8', 'pad':5})
+    plt.show() 
 
 if __name__ == '__main__':
     main()
